@@ -1,0 +1,512 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  PARENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum ExamType {
+  SEMESTER_1
+  ANNUAL
+}
+
+enum AdmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  name         String
+  email        String  @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  adminProfile   AdminProfile?
+  teacherProfile TeacherProfile?
+  parentProfile  ParentProfile?
+
+  attendanceSessionsMarked AttendanceSession[] @relation("AttendanceMarkedBy")
+
+  noticesCreated Notice[] @relation("NoticeCreatedBy")
+
+  admissionApplicationsReviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
+}
+
+model AdminProfile {
+  id Int @id @default(autoincrement())
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TeacherProfile {
+  id Int @id @default(autoincrement())
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  employeeNumber String? @unique
+  phone          String?
+
+  subjectAssignments SubjectTeacher[]
+  extraClasses       ExtraClass[]
+  timetableEntries   TimetableEntry[]
+  homework           Homework[]
+  examResults        ExamResult[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StudentProfile {
+  id Int @id @default(autoincrement())
+
+  name            String?
+  isActive        Boolean   @default(true)
+  admissionNumber String?   @unique
+  dateOfBirth     DateTime?
+  gender          String?
+  schoolName      String?
+  schoolGrade     String?
+
+  enrollments           Enrollment[]
+  extraClassEnrollments ExtraClassEnrollment[]
+  attendanceRecords     AttendanceRecord[]
+  parentLinks           ParentStudent[]
+  examResults           ExamResult[]
+  admissionApplications AdmissionApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ParentProfile {
+  id Int @id @default(autoincrement())
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  phone String?
+
+  studentLinks ParentStudent[]
+
+  admissionApplications AdmissionApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AcademicYear {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+
+  grades       Grade[]
+  extraClasses ExtraClass[]
+  exams        Exam[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Grade {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  academicYearId Int
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  subjects         Subject[]
+  enrollments      Enrollment[]
+  timetableEntries TimetableEntry[]
+  homework         Homework[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, academicYearId])
+}
+
+model Subject {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  gradeId Int
+  grade   Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  teacherAssignments SubjectTeacher[]
+  timetableEntries   TimetableEntry[]
+  homework           Homework[]
+  examResults        ExamResult[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, gradeId])
+}
+
+model SubjectTeacher {
+  id Int @id @default(autoincrement())
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  teacherId Int
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subjectId, teacherId])
+  @@index([subjectId])
+  @@index([teacherId])
+}
+
+model Enrollment {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  gradeId Int
+  grade   Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  enrolledAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, gradeId])
+  @@index([studentId])
+  @@index([gradeId])
+  @@index([isActive])
+}
+
+model ExtraClass {
+  id Int @id @default(autoincrement())
+
+  name String
+
+  academicYearId Int
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  teacherId Int?
+  teacher   TeacherProfile? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  dayOfWeek String?
+  startTime String?
+  endTime   String?
+
+  isActive Boolean @default(true)
+
+  enrollments ExtraClassEnrollment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, academicYearId])
+}
+
+model ExtraClassEnrollment {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  extraClassId Int
+  extraClass   ExtraClass @relation(fields: [extraClassId], references: [id], onDelete: Cascade)
+
+  enrolledAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, extraClassId])
+}
+
+model TimetableEntry {
+  id Int @id @default(autoincrement())
+
+  gradeId Int
+  grade   Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  teacherId Int
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  dayOfWeek String
+
+  startTime String
+  endTime   String
+
+  room String?
+
+  isActive Boolean @default(true)
+
+  attendanceSessions AttendanceSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([gradeId])
+  @@index([subjectId])
+  @@index([teacherId])
+  @@index([dayOfWeek])
+}
+
+model AttendanceSession {
+  id Int @id @default(autoincrement())
+
+  timetableEntryId Int
+  timetableEntry   TimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Restrict)
+
+  attendanceDate DateTime @db.Date
+
+  markedByUserId Int
+  markedByUser   User @relation("AttendanceMarkedBy", fields: [markedByUserId], references: [id], onDelete: Restrict)
+
+  records AttendanceRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([timetableEntryId, attendanceDate])
+  @@index([attendanceDate])
+  @@index([markedByUserId])
+}
+
+model AttendanceRecord {
+  id Int @id @default(autoincrement())
+
+  attendanceSessionId Int
+  attendanceSession   AttendanceSession @relation(fields: [attendanceSessionId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  status AttendanceStatus
+
+  note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attendanceSessionId, studentId])
+  @@index([studentId])
+}
+
+model ParentStudent {
+  id Int @id @default(autoincrement())
+
+  parentId Int
+  parent   ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  relationship String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+/**
+ * ========================================
+ * ADMISSION APPLICATIONS
+ * ========================================
+ */
+
+model AdmissionApplication {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  parentId Int
+  parent   ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  status AdmissionStatus @default(PENDING)
+
+  adminNote String?
+
+  reviewedById Int?
+  reviewedBy   User? @relation("AdmissionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([parentId])
+  @@index([status])
+  @@index([reviewedById])
+}
+
+/**
+ * ========================================
+ * HOMEWORK
+ * ========================================
+ */
+
+model Homework {
+  id Int @id @default(autoincrement())
+
+  title       String
+  description String
+
+  gradeId Int
+  grade   Grade @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  teacherId Int
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+
+  dueDate DateTime? @db.Date
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([gradeId])
+  @@index([subjectId])
+  @@index([teacherId])
+  @@index([dueDate])
+  @@index([isActive])
+}
+
+/**
+ * ========================================
+ * EXAMS
+ * ========================================
+ */
+
+model Exam {
+  id Int @id @default(autoincrement())
+
+  examType ExamType
+
+  academicYearId Int
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  isActive Boolean @default(true)
+
+  results ExamResult[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examType, academicYearId])
+  @@index([academicYearId])
+}
+
+model ExamResult {
+  id Int @id @default(autoincrement())
+
+  examId Int
+  exam   Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  teacherId Int
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+
+  marksObtained Float
+  maxMarks      Float
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examId, studentId, subjectId])
+  @@index([studentId])
+  @@index([subjectId])
+  @@index([teacherId])
+}
+
+model Notice {
+  id Int @id @default(autoincrement())
+
+  title   String
+  message String
+
+  expiresAt DateTime? @db.Date
+
+  isActive Boolean @default(true)
+
+  createdById Int
+  createdBy   User @relation("NoticeCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([expiresAt])
+}
+
+model SchoolSetting {
+  id Int @id @default(autoincrement())
+
+  schoolName        String
+  shortName         String?
+  address           String?
+  phone             String?
+  email             String?
+  website           String?
+  administratorName String?
+
+  logoUrl String?
+
+  timezone String @default("Asia/Seoul")
+  language String @default("en")
+
+  admissionOpen Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
