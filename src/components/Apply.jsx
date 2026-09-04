@@ -10,7 +10,7 @@ import SectionTitle from "./SectionTitle";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://localhost:5000/api";
+  "/api";
 
 export default function Apply() {
   const navigate = useNavigate();
