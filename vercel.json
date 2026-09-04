@@ -1,14 +1,12 @@
 {
   "services": {
     "frontend": {
-      "root": "./",
+      "root": "frontend/",
       "framework": "vite"
     },
     "backend": {
       "root": "backend/",
-      "framework": "express",
-      "installCommand": "npm install",
-      "buildCommand": "npm run build"
+      "framework": "express"
     }
   },
   "rewrites": [
