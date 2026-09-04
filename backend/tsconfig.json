@@ -10,8 +10,9 @@
     "rootDir": "."
   },
   "include": [
-    "src",
-    "prisma",
-    "prisma.config.ts"
-  ]
+  "src",
+  "api.ts",
+  "prisma",
+  "prisma.config.ts"
+]
 }
