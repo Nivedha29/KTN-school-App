@@ -6,7 +6,7 @@
   "scripts": {
   "dev": "tsx watch src/server.ts",
   "start": "tsx src/server.ts",
-  "build": "prisma generate && esbuild src/app.ts --bundle --platform=node --target=node22 --format=cjs --external:argon2 --outfile=dist/app.js",
+  "build": "prisma generate && tsc",
   "prisma:generate": "prisma generate",
   "prisma:migrate": "prisma migrate dev",
   "prisma:seed": "prisma db seed"
