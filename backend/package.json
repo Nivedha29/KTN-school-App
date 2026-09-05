@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && esbuild src/app.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/app.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed"
@@ -32,6 +32,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.15.5",
+    "esbuild": "^0.28.2",
     "prisma": "^7.10.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"
